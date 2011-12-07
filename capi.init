@@ -1,0 +1,83 @@
+#! /bin/bash
+#
+# chkconfig: 2345 9 91
+# description: start and stop capi services for passive ISDN cards
+#
+
+PATH=/bin:/sbin:/usr/bin:/usr/sbin
+
+# Source function library.
+if [ -f /etc/init.d/functions ]; then
+    . /etc/init.d/functions
+elif [ -f /etc/rc.d/init.d/functions ] ; then
+    . /etc/rc.d/init.d/functions
+else
+    exit 0
+fi
+
+[ -f /sbin/capiinit ] || exit 0
+[ -f /etc/capi.conf ] || exit 0
+RETVAL=0
+
+function start()
+{
+    # don't start again if it's already started
+    [ ! -f /var/lock/subsys/capi ] || exit 0
+    action $"Starting capi4linux:" capiinit start
+    RETVAL=$?
+    if [ $RETVAL -eq 0 ] ; then
+       touch /var/lock/subsys/capi
+    fi
+}
+
+function stop()
+{
+    if [ -f /var/lock/subsys/capi ] ; then
+       action $"Stopping capi4linux:" capiinit stop
+       RETVAL=$?
+       if [ $RETVAL -eq 0 ] ; then
+          rm -f /var/lock/subsys/capi
+       fi
+    fi
+}
+
+function restart()
+{
+    stop
+    start
+}
+
+function condrestart()
+{
+    if [ -f /var/lock/subsys/capi ] ; then
+        restart
+    fi
+}
+
+function status()
+{
+    capiinfo
+}
+
+case "$1" in 
+    start)
+       start
+       ;;
+    stop)
+       stop
+       ;;
+    restart)
+       restart
+       ;;
+    condrestart)
+       condrestart
+       ;;
+    status)
+       status
+       ;;
+    *)
+       echo $"Usage: $0 {start|stop|restart|status|condrestart}"
+       exit 1
+esac
+
+exit 0
